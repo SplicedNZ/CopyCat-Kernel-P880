@@ -41,15 +41,15 @@
 #include <linux/miscdevice.h>
 #include <linux/platform_device.h>
 #include <asm/uaccess.h>
-#include "tspdrv.h"
+#include <tspdrv.h>
 #include <linux/tspdrv_i2c.h>	//                               
 #include <linux/delay.h>		//                                      
 
-#include "ImmVibeSPI.c"
+#include <ImmVibeSPI.c>
 #if defined(VIBE_DEBUG) && defined(VIBE_RECORD)
 #include <tspdrvRecorder.c>
 #endif
-#include"imm_timed_output.h"
+
 
 /* Device name and version information */
 #define VERSION_STR " v3.4.55.8\n"                  /* DO NOT CHANGE - this is auto-generated */
@@ -159,40 +159,9 @@ MODULE_AUTHOR("Immersion Corporation");
 MODULE_DESCRIPTION("TouchSense Kernel Module");
 MODULE_LICENSE("GPL v2");
 
-extern VibeInt8 timedForce;
-
-static ssize_t nforce_val_show(struct device *dev, struct device_attribute *attr,
-		char *buf)
-{
-	return sprintf(buf, "%hu", timedForce);
-}
-
-static ssize_t nforce_val_store(struct device *dev, struct device_attribute *attr,
-		const char *buf, size_t size)
-{
-	unsigned short int strength_val = DEFAULT_TIMED_STRENGTH;
-	if (kstrtoul(buf, 0, (unsigned long int*)&strength_val))
-		pr_err("[VIB] %s: error on storing nforce\n", __func__);
-
-
-	/* make sure new pwm duty is in range */
-	if (strength_val > 127)
-		strength_val = 127;
-	else if (strength_val < 1)
-		strength_val = 1;
-
-	timedForce = strength_val;
-
-	return size;
-}
-
-static DEVICE_ATTR(nforce_timed, S_IRUGO | S_IWUSR, nforce_val_show, nforce_val_store);
-
 int __init tspdrv_init( void )
 {
     int nRet, i;   /* initialized below */
-
-	create_vibrator_sysfs();
 
     DbgOut((KERN_INFO "tspdrv: init_module. enter\n"));
 
@@ -246,8 +215,6 @@ int __init tspdrv_init( void )
     }
     DbgOut((KERN_INFO "tspdrv: init_module exit.\n"));
 
-    device_create_file(&platdev.dev, &dev_attr_nforce_timed);
-    ImmVibe_timed_output();
     return 0;
 }
 
@@ -445,7 +412,6 @@ static ssize_t write(struct file *file, const char *buf, size_t count, loff_t *p
     return count;
 }
 
-
 #if HAVE_UNLOCKED_IOCTL
 static long unlocked_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 #else
@@ -489,6 +455,10 @@ static int ioctl(struct inode *inode, struct file *file, unsigned int cmd, unsig
             file->private_data = (void*)TSPDRV_MAGIC_NUMBER;
             break;
 
+        case TSPDRV_ENABLE_TIMED_AMP:
+            ImmVibeSPI_ForceOut_AmpEnable(0);
+            VibeOSKernelLinuxAutoTimer(*((int*)arg));
+            break;
         case TSPDRV_ENABLE_AMP:
             ImmVibeSPI_ForceOut_AmpEnable(arg);
             DbgRecorderReset((arg));

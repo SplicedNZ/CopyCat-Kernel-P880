@@ -93,15 +93,9 @@ static int status = 0;
 
 #define DEBUG_MSG //printk	// todo - define to something
 
-#ifdef CONFIG_LG_VIBE
-unsigned long pwm_val = 50;
-#else
-unsigned long pwm_val = 100;
-#endif
-
-
 #define PWM_PERIOD_DEFAULT              44000 //20.3KHz
-#define PWM_DUTY_DEFAULT              (PWM_PERIOD_DEFAULT *pwm_val / 100) //50%
+//#define PWM_DUTY_DEFAULT              (PWM_PERIOD_DEFAULT >> 1) //50%
+#define PWM_DUTY_DEFAULT              (PWM_PERIOD_DEFAULT *.75 ) //75%
 
 VibeUInt32 g_nPWM_Freq = PWM_PERIOD_DEFAULT;
 
@@ -121,7 +115,7 @@ IMMVIBESPIAPI VibeStatus SYS_API__I2C__Write( _addr, _data)
 /*
 ** Called to disable amp (disable output force)
 */
-/*IMMVIBESPIAPI*/ VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8 nActuatorIndex)
+IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpDisable(VibeUInt8 nActuatorIndex)
 {
     int cnt = 0;
     unsigned char I2C_data[1];
@@ -153,13 +147,10 @@ IMMVIBESPIAPI VibeStatus SYS_API__I2C__Write( _addr, _data)
     return VIBE_S_SUCCESS;
 }
 
-EXPORT_SYMBOL(ImmVibeSPI_ForceOut_AmpDisable);
-
-
 /*
 ** Called to enable amp (enable output force0)
 */
-/*IMMVIBESPIAPI*/ VibeStatus ImmVibeSPI_ForceOut_AmpEnable(VibeUInt8 nActuatorIndex)
+IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_AmpEnable(VibeUInt8 nActuatorIndex)
 {
     int cnt = 0;	
     unsigned char I2C_data[1];
@@ -264,19 +255,19 @@ EXPORT_SYMBOL(ImmVibeSPI_ForceOut_AmpDisable);
 	    if( VIBE_S_SUCCESS != ret) DEBUG_MSG("[ImmVibeSPI_ForceOut_AmpEnable] I2C_Write Error,  Slave Address = [%d], ret = [%d]\n", I2C_data[0], ret);	
 #if 0
 		I2C_data[0] = tspdrv_i2c_read_byte_data(HCTRL0);
-		printk("HCTRL0 written data : 0x%x\n", I2C_data[0]);
+		DEBUG_MSG("HCTRL0 written data : 0x%x\n", I2C_data[0]);
 
 		I2C_data[0] = tspdrv_i2c_read_byte_data(HCTRL1);
-		printk("HCTRL1 written data : 0x%x\n", I2C_data[0]);
+		DEBUG_MSG("HCTRL1 written data : 0x%x\n", I2C_data[0]);
 
 		I2C_data[0] = tspdrv_i2c_read_byte_data(HCTRL2);
-		printk("HCTRL2 written data : 0x%x\n", I2C_data[0]);
+		DEBUG_MSG("HCTRL2 written data : 0x%x\n", I2C_data[0]);
 
 		I2C_data[0] = tspdrv_i2c_read_byte_data(HCTRL3);
-		printk("HCTRL3 written data : 0x%x\n", I2C_data[0]);
+		DEBUG_MSG("HCTRL3 written data : 0x%x\n", I2C_data[0]);
 
 		I2C_data[0] = tspdrv_i2c_read_byte_data(HCTRL4);
-		printk("HCTRL4 written data : 0x%x\n", I2C_data[0]);
+		DEBUG_MSG("HCTRL4 written data : 0x%x\n", I2C_data[0]);
 #endif
     }
 
@@ -285,7 +276,6 @@ EXPORT_SYMBOL(ImmVibeSPI_ForceOut_AmpDisable);
 
     return VIBE_S_SUCCESS;
 }
-EXPORT_SYMBOL(ImmVibeSPI_ForceOut_AmpEnable);
 
 /*
 ** Called at initialization time to set PWM frequencies, disable amp, etc...
@@ -388,7 +378,6 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_Terminate(void)
 /*
 ** Called by the real-time loop to set PWM_MAG duty cycle
 */
-
 IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8 nActuatorIndex, VibeUInt16 nOutputSignalBitDepth, VibeUInt16 nBufferSizeInBytes, VibeInt8* pForceOutputBuffer)
 {
     VibeInt8 nForce;
@@ -418,7 +407,6 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8 nActuatorIndex
             return VIBE_E_FAIL;
     }
 
-
     if(nForce == 0)
     {
         duty_ns = PWM_DUTY_DEFAULT;
@@ -427,56 +415,10 @@ IMMVIBESPIAPI VibeStatus ImmVibeSPI_ForceOut_SetSamples(VibeUInt8 nActuatorIndex
     {
         duty_ns = ((nForce + 128) * g_nPWM_Freq) >> 8;
     }
-	printk("****** nForce : %d , duty_ns : %d ****\n", nForce, duty_ns);
+//	DEBUG_MSG("****** nForce : %d , duty_ns : %d ****\n", nForce, duty_ns);
 	tspdrv_control_pwm(1, duty_ns, g_nPWM_Freq);
     return VIBE_S_SUCCESS;
 }
-
-static ssize_t pwm_val_show(struct device *dev, struct device_attribute *attr, char *buf)
-			{
-			int count;
-
-			count = sprintf(buf, "%lu\n", pwm_val);
-			pr_debug("[VIB] pwm_val: %lu\n", pwm_val);
-
-			return count;
-			}
-
-ssize_t pwm_val_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t size)	
-{	
-	if (kstrtoul(buf, 0, &pwm_val))	
-				
-	pr_err("[VIB] %s: error on storing pwm_val\n", __func__);	
-	pr_info("[VIB] %s: pwm_val=%lu\n", __func__, pwm_val);	
-				
-	/* make sure new pwm duty is in range */	
-	if(pwm_val > 100)	
-		pwm_val = 100;
-	else if (pwm_val < 0)	
-		pwm_val = 0;	
-				
-	return size;	
-}	
-				
-static DEVICE_ATTR(pwm_val, S_IRUGO | S_IWUSR, pwm_val_show, pwm_val_store);	
-				
-static int create_vibrator_sysfs(void)	
-{	
-	int ret;	
-	struct kobject *vibrator_kobj;	
-	vibrator_kobj = kobject_create_and_add("vibrator", NULL);	
-	if (unlikely(!vibrator_kobj))	
-		return -ENOMEM;	
-				
-	ret = sysfs_create_file(vibrator_kobj, &dev_attr_pwm_val.attr);	
-	if (unlikely(ret < 0)) {	
-		pr_err("[VIB] sysfs_create_file failed: %d\n", ret);	
-		return ret;	
-		}	
-				
-	return 0;
-}
-
 /*
 ** Called to set force output frequency parameters
 */
