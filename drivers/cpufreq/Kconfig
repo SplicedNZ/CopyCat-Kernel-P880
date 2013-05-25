@@ -294,7 +294,7 @@ config CPU_FREQ_GOV_GAMING
 	  
 config CPU_FREQ_GOV_SMARTMAX
 	tristate "'smartmax' cpufreq governor"
-	select CPU_FREQ_TABLE
+	depends on CPU_FREQ
 	help
 	  'smartmax' - this driver is a kind of an improved smartassV2 governor,
 	  made for Tegra 3 devices.
