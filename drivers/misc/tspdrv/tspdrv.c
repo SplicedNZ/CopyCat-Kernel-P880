@@ -41,11 +41,12 @@
 #include <linux/miscdevice.h>
 #include <linux/platform_device.h>
 #include <asm/uaccess.h>
-#include <tspdrv.h>
 #include <linux/tspdrv_i2c.h>	//                               
 #include <linux/delay.h>		//                                      
 
-#include <ImmVibeSPI.c>
+#include "tspdrv.h"
+
+#include "ImmVibeSPI.c"
 #if defined(VIBE_DEBUG) && defined(VIBE_RECORD)
 #include <tspdrvRecorder.c>
 #endif
