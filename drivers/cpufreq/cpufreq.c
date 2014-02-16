@@ -33,6 +33,12 @@
 
 #include <trace/events/power.h>
 
+<<<<<<< HEAD
+=======
+/* includes for the undervolt interface */
+#include "../../arch/arm/mach-tegra/dvfs.h"
+
+>>>>>>> parent of 713f9db... tegra: add GPU clocks interface.
 #define dprintk(msg...) cpufreq_debug_printk(CPUFREQ_DEBUG_CORE, \
 						"cpufreq-core", msg)
 
@@ -668,6 +674,70 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
 
+<<<<<<< HEAD
+=======
+static ssize_t show_UV_mV_table(struct cpufreq_policy *policy, char *buf)
+{
+	int i = 0;
+	char *c = buf;
+	struct clk *cpu_clk_g = tegra_get_clock_by_name("cpu_g");
+
+	i = cpu_clk_g->dvfs->num_freqs-3;
+	
+	if (i == 0) {
+		pr_info("[franciscofranco] %s - error fetching the number of entries so we break earlier.", __func__);
+		return 0;
+	}
+	
+	for (i--; i >= 0; i--)
+		c += sprintf(c, "%u %d\n", freq_table[i], cpu_clk_g->dvfs->millivolts[i]);
+	
+	return c - buf;
+}
+
+static ssize_t store_UV_mV_table(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+	int i = 0;
+	int ret;
+	unsigned long cur_volt;
+	char cur_size[16];
+	
+	struct clk *cpu_clk_g = tegra_get_clock_by_name("cpu_g");
+	
+	i = cpu_clk_g->dvfs->num_freqs-3;
+	
+	if (i == 0) {
+		pr_info("[franciscofranco] %s - error fetching the number of entries, so we break earlier.", __func__);
+		return 0;
+	}
+	
+	for (i--; i >= 0; i--) {
+		if (freq_table[i] != 0) {
+			ret = sscanf(buf, "%lu", &cur_volt);
+			if (ret != 1)
+				return -EINVAL;
+				
+			if (cur_volt >= 600 && cur_volt <= 1250) {
+				user_mv_table[i] = cur_volt;
+				pr_info("[franciscofranco] %s - table[%d]: %lu\n", __func__, i, cur_volt);
+			}
+			
+			ret = sscanf(buf, "%s", cur_size);
+			
+			if (ret == 0)
+				return 0;
+				
+			buf += (strlen(cur_size) + 1);
+		}
+	}
+	
+	/* lets update the table now */
+	cpu_clk_g->dvfs->millivolts = user_mv_table;
+	
+	return count;
+}
+
+>>>>>>> parent of 713f9db... tegra: add GPU clocks interface.
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
 cpufreq_freq_attr_ro(cpuinfo_max_freq);
@@ -684,6 +754,12 @@ cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
 cpufreq_freq_attr_ro(policy_min_freq);
 cpufreq_freq_attr_ro(policy_max_freq);
+<<<<<<< HEAD
+=======
+=======
+cpufreq_freq_attr_rw(UV_mV_table);
+>>>>>>> b37c44b... cpufreq.c: add userspace voltage control. Original implementation from faux123 (which was based on Michael Huang's OMAP4460 work). Interface cleaned up, made more robust and secure
+>>>>>>> parent of 713f9db... tegra: add GPU clocks interface.
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -699,6 +775,12 @@ static struct attribute *default_attrs[] = {
 	&scaling_setspeed.attr,
 	&policy_min_freq.attr,
 	&policy_max_freq.attr,
+<<<<<<< HEAD
+=======
+=======
+	&UV_mV_table.attr,
+>>>>>>> b37c44b... cpufreq.c: add userspace voltage control. Original implementation from faux123 (which was based on Michael Huang's OMAP4460 work). Interface cleaned up, made more robust and secure
+>>>>>>> parent of 713f9db... tegra: add GPU clocks interface.
 	NULL
 };
 
