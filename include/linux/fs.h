@@ -1664,6 +1664,20 @@ struct super_operations {
 	void (*free_cached_objects)(struct super_block *, int);
 };
 
+/**
+ * set_nlink - directly set an inode's link count
+ * @inode: inode
+ * @nlink: new nlink (should be non-zero)
+ *
+ * This is a low-level filesystem helper to replace any
+ * direct filesystem manipulation of i_nlink.
+ */
+static inline void set_nlink(struct inode *inode, unsigned int nlink)
+{
+	inode->i_nlink = nlink;
+}
+
+
 /*
  * Inode state bits.  Protected by inode->i_lock
  *
